@@ -18,7 +18,6 @@ private:
     RenderTarget *pDepthBuffer = NULL;
     Queue *pGraphicsQueue = NULL;
 
-
 public:
     bool Init() override
     { // FILE PATHS
@@ -114,15 +113,16 @@ public:
 
         return true;
     }
-    void Unload(ReloadDesc *pReloadDesc) override {
+    void Unload(ReloadDesc *pReloadDesc) override
+    {
         waitQueueIdle(pGraphicsQueue);
 
-		unloadUserInterface(pReloadDesc->mType);
-		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
-		{
-			removeSwapChain(pRenderer, pSwapChain);
-			removeRenderTarget(pRenderer, pDepthBuffer);
-		}
+        unloadUserInterface(pReloadDesc->mType);
+        if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+        {
+            removeSwapChain(pRenderer, pSwapChain);
+            removeRenderTarget(pRenderer, pDepthBuffer);
+        }
     }
 
     void Update(float deltaTime) override {}
