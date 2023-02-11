@@ -13,11 +13,11 @@ class MainApp : public IApp
 private:
     static constexpr uint32_t gImageCount = 3;
 
-    Renderer *pRenderer = NULL;
-    UIComponent *pGuiWindow = NULL;
-    SwapChain *pSwapChain = NULL;
-    RenderTarget *pDepthBuffer = NULL;
-    Queue *pGraphicsQueue = NULL;
+    Renderer *pRenderer = nullptr;
+    UIComponent *pGuiWindow = nullptr;
+    SwapChain *pSwapChain = nullptr;
+    RenderTarget *pDepthBuffer = nullptr;
+    Queue *pGraphicsQueue = nullptr;
     uint32_t gFontID = 0;
 
 public:
@@ -83,10 +83,13 @@ public:
     }
     void Exit() override
     {
+        exitInputSystem();
         exitUserInterface();
+        exitFontSystem();
         exitResourceLoaderInterface(pRenderer);
+        removeQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
-        pRenderer = NULL;
+        pRenderer = nullptr;
     }
 
     bool Load(ReloadDesc *pReloadDesc) override
