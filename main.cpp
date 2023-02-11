@@ -2,11 +2,11 @@
 
 #include <IApp.h>
 #include <IFileSystem.h>
+#include <IFont.h>
 #include <IGraphics.h>
 #include <IInput.h>
 #include <IResourceLoader.h>
 #include <IUI.h>
-#include <IFont.h>
 
 class MainApp : public IApp
 {
@@ -19,6 +19,12 @@ private:
     RenderTarget *pDepthBuffer = nullptr;
     Queue *pGraphicsQueue = nullptr;
     uint32_t gFontID = 0;
+    Cmd *pCmds[gImageCount]{nullptr};
+    CmdPool *pCmdPools[gImageCount]{nullptr};
+    uint32_t gFrameIndex = 0;
+    Fence *pRenderCompleteFences[gImageCount]{nullptr};
+    Semaphore *pRenderCompleteSemaphores[gImageCount] = {nullptr};
+    Semaphore*    pImageAcquiredSemaphore = nullptr;
 
 public:
     bool Init() override
@@ -46,6 +52,20 @@ public:
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
         queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
         addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+        for (uint32_t i = 0; i < gImageCount; ++i)
+        {
+            CmdPoolDesc cmdPoolDesc = {};
+            cmdPoolDesc.pQueue = pGraphicsQueue;
+            addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+            CmdDesc cmdDesc = {};
+            cmdDesc.pPool = pCmdPools[i];
+            addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+            addFence(pRenderer, &pRenderCompleteFences[i]);
+            addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+        }
+        addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
         initResourceLoaderInterface(pRenderer);
 
@@ -86,6 +106,18 @@ public:
         exitInputSystem();
         exitUserInterface();
         exitFontSystem();
+
+        for (uint32_t i = 0; i < gImageCount; ++i)
+        {
+            removeFence(pRenderer, pRenderCompleteFences[i]);
+            removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+
+            removeCmd(pRenderer, pCmds[i]);
+            removeCmdPool(pRenderer, pCmdPools[i]);
+        }
+
+        removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
         exitResourceLoaderInterface(pRenderer);
         removeQueue(pRenderer, pGraphicsQueue);
         exitRenderer(pRenderer);
@@ -135,6 +167,12 @@ public:
         uiLoad.mLoadType = pReloadDesc->mType;
         loadUserInterface(&uiLoad);
 
+        FontSystemLoadDesc fontLoad = {};
+        fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+        fontLoad.mHeight = mSettings.mHeight;
+        fontLoad.mWidth = mSettings.mWidth;
+        fontLoad.mLoadType = pReloadDesc->mType;
+        loadFontSystem(&fontLoad);
 
         return true;
     }
@@ -142,6 +180,7 @@ public:
     {
         waitQueueIdle(pGraphicsQueue);
 
+        unloadFontSystem(pReloadDesc->mType);
         unloadUserInterface(pReloadDesc->mType);
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
@@ -150,8 +189,66 @@ public:
         }
     }
 
-    void Update(float deltaTime) override {}
-    void Draw() override {}
+    void Update(float deltaTime) override {
+        updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+    }
+    void Draw() override
+    {
+        uint32_t swapchainImageIndex;
+        acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
+
+        RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
+        Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+        Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+        // Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
+        FenceStatus fenceStatus;
+        getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+        if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+            waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+        // Reset cmd pool for this frame
+        resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+
+        Cmd *cmd = pCmds[gFrameIndex];
+        beginCmd(cmd);
+
+        RenderTargetBarrier barriers[] = {
+            { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+        };
+        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+        // simply record the screen cleaning command
+        LoadActionsDesc loadActions = {};
+        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
+        loadActions.mClearDepth.depth = 0.0f;
+        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
+
+        cmdDrawUserInterface(cmd);
+        endCmd(cmd);
+
+        QueueSubmitDesc submitDesc = {};
+        submitDesc.mCmdCount = 1;
+        submitDesc.mSignalSemaphoreCount = 1;
+        submitDesc.mWaitSemaphoreCount = 1;
+        submitDesc.ppCmds = &cmd;
+        submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+        submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+        submitDesc.pSignalFence = pRenderCompleteFence;
+        queueSubmit(pGraphicsQueue, &submitDesc);
+        QueuePresentDesc presentDesc = {};
+        presentDesc.mIndex = swapchainImageIndex;
+        presentDesc.mWaitSemaphoreCount = 1;
+        presentDesc.pSwapChain = pSwapChain;
+        presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+        presentDesc.mSubmitDone = true;
+
+        queuePresent(pGraphicsQueue, &presentDesc);
+
+        gFrameIndex = (gFrameIndex + 1) % gImageCount;
+    }
 
     const char *GetName() override { return "StarField test"; }
 };
