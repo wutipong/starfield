@@ -176,3 +176,17 @@ file(COPY
 file(COPY
         "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Examples_3/Unit_Tests/UnitTestResources/GPUCfg/gpu.cfg"
         DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/GPUCfg")
+
+file(COPY
+        "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Examples_3/Unit_Tests/UnitTestResources/Fonts/TitilliumText/TitilliumText-Bold.otf"
+        DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/Fonts/TitilliumText")
+
+
+add_custom_command(TARGET starfield
+        POST_BUILD
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
+        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
+        "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
+        "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/UI/Shaders/FSL/UI_ShaderList.fsl"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        )

@@ -1,11 +1,12 @@
 #include <cstdlib>
-#include <iostream>
 
 #include <IApp.h>
 #include <IFileSystem.h>
 #include <IGraphics.h>
+#include <IInput.h>
 #include <IResourceLoader.h>
 #include <IUI.h>
+#include <IFont.h>
 
 class MainApp : public IApp
 {
@@ -17,6 +18,7 @@ private:
     SwapChain *pSwapChain = NULL;
     RenderTarget *pDepthBuffer = NULL;
     Queue *pGraphicsQueue = NULL;
+    uint32_t gFontID = 0;
 
 public:
     bool Init() override
@@ -40,7 +42,22 @@ public:
         if (!pRenderer)
             return false;
 
+        QueueDesc queueDesc = {};
+        queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+        queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+        addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
         initResourceLoaderInterface(pRenderer);
+
+        // Load fonts
+        FontDesc font = {};
+        font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+        fntDefineFonts(&font, 1, &gFontID);
+
+        FontSystemDesc fontRenderDesc = {};
+        fontRenderDesc.pRenderer = pRenderer;
+        if (!initFontSystem(&fontRenderDesc))
+            return false; // report?
 
         UserInterfaceDesc uiRenderDesc = {};
         uiRenderDesc.pRenderer = pRenderer;
@@ -56,6 +73,12 @@ public:
 
         waitForAllResourceLoads();
 
+        InputSystemDesc inputDesc = {};
+        inputDesc.pRenderer = pRenderer;
+        inputDesc.pWindow = pWindow;
+        if (!initInputSystem(&inputDesc))
+            return false;
+
         return true;
     }
     void Exit() override
@@ -68,7 +91,6 @@ public:
 
     bool Load(ReloadDesc *pReloadDesc) override
     {
-
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
         {
             SwapChainDesc swapChainDesc = {};
