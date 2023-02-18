@@ -99,6 +99,17 @@ public:
         if (!initInputSystem(&inputDesc))
             return false;
 
+        InputActionCallback onAnyInput = [](InputActionContext* ctx)
+        {
+            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
+            {
+                uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+            }
+            return true;
+        };
+        GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this };
+        setGlobalInputAction(&globalInputActionDesc);
+
         return true;
     }
     void Exit() override
@@ -192,6 +203,7 @@ public:
     void Update(float deltaTime) override {
         updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
     }
+
     void Draw() override
     {
         uint32_t swapchainImageIndex;
@@ -226,7 +238,13 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
+        loadActions = {};
+        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+        cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
+
         cmdDrawUserInterface(cmd);
+
+        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
