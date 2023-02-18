@@ -227,6 +227,9 @@ public:
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         cmdDrawUserInterface(cmd);
+        barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+
         endCmd(cmd);
 
         QueueSubmitDesc submitDesc = {};
