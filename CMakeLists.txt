@@ -134,7 +134,7 @@ add_executable(starfield "main.cpp"
         "theforge/Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_msl.cpp"
         "theforge/Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp"
         "theforge/Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp"
-        )
+        draw_star.cpp draw_star.h)
 
 find_package(Vulkan REQUIRED)
 
@@ -152,6 +152,7 @@ target_include_directories(starfield PRIVATE
         "theforge/Common_3/Application/Interfaces"
         "theforge/Common_3/Utilities/Interfaces"
         "theforge/Common_3/Graphics/Interfaces"
+        "theforge/Common_3/Utilities"
         "theforge/Common_3/Resources/ResourceLoader/Interfaces"
         "theforge/Common_3/Application/ThirdParty/OpenSource/gainput/lib/source"
         ${VULKAN_HEADERS_INCLUDE_DIRS}
@@ -197,5 +198,14 @@ add_custom_command(TARGET starfield
         ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
         "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
         "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/Fonts/Shaders/FSL/Fonts_ShaderList.fsl"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        )
+
+add_custom_command(TARGET starfield
+        POST_BUILD
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
+        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
+        "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/FSL/ShaderList.fsl"
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         )

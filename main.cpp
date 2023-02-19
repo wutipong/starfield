@@ -7,6 +7,7 @@
 #include <IInput.h>
 #include <IResourceLoader.h>
 #include <IUI.h>
+#include "draw_star.h"
 
 class MainApp : public IApp
 {
@@ -24,12 +25,15 @@ private:
     uint32_t gFrameIndex = 0;
     Fence *pRenderCompleteFences[gImageCount]{nullptr};
     Semaphore *pRenderCompleteSemaphores[gImageCount] = {nullptr};
-    Semaphore*    pImageAcquiredSemaphore = nullptr;
+    Semaphore *pImageAcquiredSemaphore = nullptr;
+
+    ICameraController *pCameraController;
+    DrawStar drawStar;
 
 public:
     bool Init() override
     { // FILE PATHS
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "shaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
@@ -93,13 +97,21 @@ public:
 
         waitForAllResourceLoads();
 
+        CameraMotionParameters cmp{160.0f, 600.0f, 200.0f};
+        vec3 camPos{48.0f, 48.0f, 20.0f};
+        vec3 lookAt{vec3(0)};
+
+        pCameraController = initFpsCameraController(camPos, lookAt);
+
+        pCameraController->setMotionParameters(cmp);
+
         InputSystemDesc inputDesc = {};
         inputDesc.pRenderer = pRenderer;
         inputDesc.pWindow = pWindow;
         if (!initInputSystem(&inputDesc))
             return false;
 
-        InputActionCallback onAnyInput = [](InputActionContext* ctx)
+        InputActionCallback onAnyInput = [](InputActionContext *ctx)
         {
             if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
             {
@@ -107,14 +119,17 @@ public:
             }
             return true;
         };
-        GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this };
+        GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this};
         setGlobalInputAction(&globalInputActionDesc);
 
+        drawStar.Init();
         return true;
     }
     void Exit() override
     {
+        drawStar.Exit();
         exitInputSystem();
+        exitCameraController(pCameraController);
         exitUserInterface();
         exitFontSystem();
 
@@ -185,12 +200,14 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
+        drawStar.Load();
         return true;
     }
     void Unload(ReloadDesc *pReloadDesc) override
     {
         waitQueueIdle(pGraphicsQueue);
 
+        drawStar.Unload(pReloadDesc);
         unloadFontSystem(pReloadDesc->mType);
         unloadUserInterface(pReloadDesc->mType);
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
@@ -200,8 +217,17 @@ public:
         }
     }
 
-    void Update(float deltaTime) override {
+    void Update(float deltaTime) override
+    {
         updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
+        pCameraController->update(deltaTime);
+
+        const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
+        const float horizontal_fov = PI / 2.0f;
+        CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
+        CameraMatrix mProjectView = projMat * pCameraController->getViewMatrix();
+
+        drawStar.Update(deltaTime, mProjectView);
     }
 
     void Draw() override
@@ -209,9 +235,9 @@ public:
         uint32_t swapchainImageIndex;
         acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, nullptr, &swapchainImageIndex);
 
-        RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-        Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-        Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+        RenderTarget *pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
+        Semaphore *pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+        Fence *pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
         // Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
         FenceStatus fenceStatus;
@@ -226,7 +252,7 @@ public:
         beginCmd(cmd);
 
         RenderTargetBarrier barriers[] = {
-            { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+            {pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET},
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
         // simply record the screen cleaning command
@@ -242,10 +268,11 @@ public:
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
         cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
 
+        drawStar.Draw(cmd);
         cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-        barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+        barriers[0] = {pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT};
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
         endCmd(cmd);
