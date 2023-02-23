@@ -25,7 +25,7 @@ public:
 private:
     int vertexCount{};
 
-    vec3 position{};
+    vec3 position{0};
     vec3 lightPosition{0, 0, 0};
     vec3 lightColor{0.9f, 0.9f, 0.7f};
 

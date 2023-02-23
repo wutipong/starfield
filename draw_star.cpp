@@ -141,7 +141,7 @@ void DrawStar::Update(float deltaTime, CameraMatrix &cameraMatrix)
 {
     uniform.mProjectView = cameraMatrix;
     uniform.mColor = {1.0f, 1.0f, 1.0f, 1.0f};
-    uniform.mToWorldMat = mat4{}.translation(position);
+    uniform.mToWorldMat = mat4(0).identity().translation(position);
     uniform.mLightColor = lightColor;
     uniform.mLightPosition = lightPosition;
 }
