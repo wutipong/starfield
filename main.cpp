@@ -9,6 +9,8 @@
 #include <IUI.h>
 #include "draw_star.h"
 
+extern RendererApi gSelectedRendererApi;
+
 class MainApp : public IApp
 {
 private:
@@ -33,6 +35,12 @@ private:
 public:
     bool Init() override
     {
+        /*
+         * TODO: only D3D11 is not crashing at the moment.
+         *       D3D12 just crashes, while the validation layer of Vulkan try to display some error message.
+         */
+        gSelectedRendererApi = RENDERER_API_D3D11;
+
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "shaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
@@ -202,7 +210,7 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        drawStar.Load(pReloadDesc, pRenderer, pSwapChain, pDepthBuffer,gImageCount);
+        drawStar.Load(pReloadDesc, pRenderer, pSwapChain, pDepthBuffer, gImageCount);
         return true;
     }
 
