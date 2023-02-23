@@ -5,7 +5,7 @@
 void DrawStar::Init(uint32_t imageCount)
 {
     float *vertices{};
-    generateSpherePoints(&vertices, &vertexCount, 1, 1.0f);
+    generateSpherePoints(&vertices, &vertexCount, 6, 1.0f);
 
     uint64_t sphereDataSize = vertexCount * sizeof(float);
     BufferLoadDesc sphereVbDesc = {};
@@ -14,7 +14,7 @@ void DrawStar::Init(uint32_t imageCount)
     sphereVbDesc.mDesc.mSize = sphereDataSize;
     sphereVbDesc.pData = vertices;
     sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
-    addResource(&sphereVbDesc, NULL);
+    addResource(&sphereVbDesc, nullptr);
 
     tf_free(vertices);
 
@@ -25,7 +25,7 @@ void DrawStar::Init(uint32_t imageCount)
     ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
     ubDesc.mDesc.mSize = sizeof(UniformBlock);
     ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-    ubDesc.pData = NULL;
+    ubDesc.pData = nullptr;
     for (uint32_t i = 0; i < imageCount; ++i)
     {
         ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
@@ -51,8 +51,8 @@ void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSw
     if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
     {
         ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0] = {"basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW};
-        basicShader.mStages[1] = {"basic.frag", NULL, 0};
+        basicShader.mStages[0] = {"basic.vert", nullptr, 0, nullptr, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW};
+        basicShader.mStages[1] = {"basic.frag", nullptr, 0};
 
         addShader(pRenderer, &basicShader, &pShader);
 
@@ -76,6 +76,7 @@ void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSw
         vertexLayout.mAttribs[0].mBinding = 0;
         vertexLayout.mAttribs[0].mLocation = 0;
         vertexLayout.mAttribs[0].mOffset = 0;
+
         vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
         vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
         vertexLayout.mAttribs[1].mBinding = 0;
@@ -110,13 +111,14 @@ void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSw
         pipelineSettings.mVRFoveatedRendering = true;
         addPipeline(pRenderer, &desc, &pSpherePipeline);
     }
+
     for (uint32_t i = 0; i < imageCount; ++i)
     {
-        DescriptorData params[1] = {};
+        DescriptorData params = {};
+        params.pName = "uniformBlock";
+        params.ppBuffers = &pProjViewUniformBuffer[i];
 
-        params[0].pName = "uniformBlock";
-        params[0].ppBuffers = &pProjViewUniformBuffer[i];
-        updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+        updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, &params);
     }
 }
 
@@ -148,14 +150,17 @@ void DrawStar::Draw(Cmd *pCmd, uint32_t frameIndex)
 {
     constexpr uint32_t sphereVbStride = sizeof(float) * 6;
 
+    cmdBindPipeline(pCmd, pSpherePipeline);
+    cmdBindDescriptorSet(pCmd, frameIndex, pDescriptorSetUniforms);
+    cmdBindVertexBuffer(pCmd, 1, &pSphereVertexBuffer, &sphereVbStride, nullptr);
+
+    cmdDraw(pCmd, vertexCount / 6, 1);
+}
+
+void DrawStar::PreDraw(uint32_t frameIndex)
+{
     BufferUpdateDesc viewProjCbv = {pProjViewUniformBuffer[frameIndex]};
     beginUpdateResource(&viewProjCbv);
     *(UniformBlock *)viewProjCbv.pMappedData = uniform;
     endUpdateResource(&viewProjCbv, nullptr);
-
-    cmdBindPipeline(pCmd, pSpherePipeline);
-    cmdBindDescriptorSet(pCmd, frameIndex, pDescriptorSetUniforms);
-    cmdBindVertexBuffer(pCmd, 1, &pSphereVertexBuffer, &sphereVbStride, NULL);
-
-    cmdDraw(pCmd, vertexCount / 6, 0);
 }

@@ -32,7 +32,8 @@ private:
 
 public:
     bool Init() override
-    { // FILE PATHS
+    {
+        // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "shaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
@@ -46,6 +47,7 @@ public:
         RendererDesc settings{};
         settings.mD3D11Supported = true;
         settings.mGLESSupported = false;
+        settings.mEnableGPUBasedValidation = true;
 
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
@@ -245,6 +247,8 @@ public:
         getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
         if (fenceStatus == FENCE_STATUS_INCOMPLETE)
             waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+        drawStar.PreDraw(gFrameIndex);
 
         // Reset cmd pool for this frame
         resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);

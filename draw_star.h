@@ -19,6 +19,7 @@ public:
               uint32_t imageCount);
     void Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer);
     void Update(float deltaTime, CameraMatrix &cameraMatrix);
+    void PreDraw(uint32_t frameIndex);
     void Draw(Cmd *pCmd, uint32_t frameIndex);
 
 private:

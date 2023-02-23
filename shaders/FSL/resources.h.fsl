@@ -36,7 +36,7 @@ RES(SamplerState,  uSampler0, UPDATE_FREQ_NONE, s0, binding = 7);
 
 // UPDATE_FREQ_PER_FRAME
 #ifndef MAX_PLANETS
-    #define MAX_PLANETS 20
+    #define MAX_PLANETS 1
 #endif
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
