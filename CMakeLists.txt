@@ -148,13 +148,14 @@ if (MSVC)
 endif ()
 
 target_include_directories(starfield PRIVATE
-        "theforge/Common_3/OS/Interfaces"
         "theforge/Common_3/Application/Interfaces"
-        "theforge/Common_3/Utilities/Interfaces"
-        "theforge/Common_3/Graphics/Interfaces"
-        "theforge/Common_3/Utilities"
-        "theforge/Common_3/Resources/ResourceLoader/Interfaces"
         "theforge/Common_3/Application/ThirdParty/OpenSource/gainput/lib/source"
+        "theforge/Common_3/Graphics/Interfaces"
+        "theforge/Common_3/OS/Interfaces"
+        "theforge/Common_3/Resources/ResourceLoader/Interfaces"
+        "theforge/Common_3/Utilities"
+        "theforge/Common_3/Utilities/Interfaces"
+        "theforge/Common_3/Utilities/ThirdParty/OpenSource/Nothings/"
         ${VULKAN_HEADERS_INCLUDE_DIRS}
         )
 

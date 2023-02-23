@@ -13,21 +13,37 @@
 class DrawStar
 {
 public:
-    void Init();
+    void Init(uint32_t imageCount);
     void Exit();
-    void Load();
-    void Unload(ReloadDesc *pReloadDesc);
-    void Update(float deltaTime, CameraMatrix &mProjectView);
-    void Draw(Cmd *pCmd);
+    void Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSwapChain, RenderTarget *pDepthBuffer,
+              uint32_t imageCount);
+    void Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer);
+    void Update(float deltaTime, CameraMatrix &cameraMatrix);
+    void Draw(Cmd *pCmd, uint32_t frameIndex);
 
 private:
-    float *vertices;
-    int vertexCount;
+    int vertexCount{};
 
-    mat4 viewMat{};
-    vec4 position{};
+    vec3 position{};
     vec3 lightPosition{0, 0, 0};
     vec3 lightColor{0.9f, 0.9f, 0.7f};
+
+    Shader *pShader;
+    RootSignature *pRootSignature;
+    DescriptorSet *pDescriptorSetUniforms;
+    Buffer **pProjViewUniformBuffer = nullptr;
+    Buffer *pSphereVertexBuffer = nullptr;
+    Pipeline *pSpherePipeline;
+
+    struct UniformBlock
+    {
+        CameraMatrix mProjectView;
+        mat4 mToWorldMat;
+        vec4 mColor;
+
+        vec3 mLightPosition;
+        vec3 mLightColor;
+    } uniform = {};
 };
 
 

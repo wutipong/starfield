@@ -122,7 +122,7 @@ public:
         GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this};
         setGlobalInputAction(&globalInputActionDesc);
 
-        drawStar.Init();
+        drawStar.Init(gImageCount);
         return true;
     }
     void Exit() override
@@ -200,14 +200,15 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        drawStar.Load();
+        drawStar.Load(pReloadDesc, pRenderer, pSwapChain, pDepthBuffer,gImageCount);
         return true;
     }
+
     void Unload(ReloadDesc *pReloadDesc) override
     {
         waitQueueIdle(pGraphicsQueue);
 
-        drawStar.Unload(pReloadDesc);
+        drawStar.Unload(pReloadDesc, pRenderer);
         unloadFontSystem(pReloadDesc->mType);
         unloadUserInterface(pReloadDesc->mType);
         if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
@@ -254,26 +255,26 @@ public:
         RenderTargetBarrier barriers[] = {
             {pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET},
         };
-        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+        cmdResourceBarrier(cmd, 0, nullptr, 0, nullptr, 1, barriers);
         // simply record the screen cleaning command
         LoadActionsDesc loadActions = {};
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
         loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
         loadActions.mClearDepth.depth = 0.0f;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, nullptr, nullptr, -1, -1);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         loadActions = {};
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, nullptr, nullptr, -1, -1);
 
-        drawStar.Draw(cmd);
+        drawStar.Draw(cmd, gFrameIndex);
         cmdDrawUserInterface(cmd);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, 0, nullptr, nullptr, nullptr, nullptr, nullptr, -1, -1);
         barriers[0] = {pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT};
-        cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+        cmdResourceBarrier(cmd, 0, nullptr, 0, nullptr, 1, barriers);
 
         endCmd(cmd);
 
