@@ -271,7 +271,7 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-        drawStar.Draw(cmd, gFrameIndex);
+        drawStar.Draw(cmd, pRenderTarget, pDepthBuffer, gFrameIndex);
 
         loadActions = {};
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;

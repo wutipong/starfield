@@ -45,8 +45,8 @@ void DrawStar::Exit()
     removeResource(pSphereVertexBuffer);
 }
 
-void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *pRenderTarget, RenderTarget *pDepthBuffer,
-                    uint32_t imageCount)
+void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *pRenderTarget,
+                    RenderTarget *pDepthBuffer, uint32_t imageCount)
 {
     if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
     {
@@ -146,9 +146,17 @@ void DrawStar::Update(float deltaTime, CameraMatrix &cameraMatrix)
     uniform.mLightPosition = lightPosition;
 }
 
-void DrawStar::Draw(Cmd *pCmd, uint32_t frameIndex)
+void DrawStar::Draw(Cmd *pCmd, RenderTarget *pRenderTarget,
+                    RenderTarget *pDepthBuffer, uint32_t frameIndex)
 {
     constexpr uint32_t sphereVbStride = sizeof(float) * 6;
+
+    LoadActionsDesc loadActions = {};
+    loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+    loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
+    loadActions.mClearDepth.depth = 0.0f;
+    cmdBindRenderTargets(pCmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, nullptr, nullptr, -1, -1);
+
 
     cmdBindPipeline(pCmd, pSpherePipeline);
     cmdBindDescriptorSet(pCmd, frameIndex, pDescriptorSetUniforms);

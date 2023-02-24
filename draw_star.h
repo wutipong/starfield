@@ -20,7 +20,8 @@ public:
     void Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer);
     void Update(float deltaTime, CameraMatrix &cameraMatrix);
     void PreDraw(uint32_t frameIndex);
-    void Draw(Cmd *pCmd, uint32_t frameIndex);
+    void Draw(Cmd *pCmd, RenderTarget *pRenderTarget,
+              RenderTarget *pDepthBuffer, uint32_t frameIndex);
 
 private:
     int vertexCount{};
