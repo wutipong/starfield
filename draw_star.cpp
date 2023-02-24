@@ -31,6 +31,12 @@ void DrawStar::Init(uint32_t imageCount)
         ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
         addResource(&ubDesc, nullptr);
     }
+
+    for (size_t i = 0; i < MAX_STARS; i++)
+    {
+        position[i] = {randomFloat(-20, 20), randomFloat(-20, 20), randomFloat(-20, 20)};
+        color[i] = {randomFloat01(), randomFloat01(), randomFloat01(), 1.0f};
+    }
 }
 
 void DrawStar::Exit()
@@ -82,9 +88,6 @@ void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *
         vertexLayout.mAttribs[1].mBinding = 0;
         vertexLayout.mAttribs[1].mLocation = 1;
         vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-
-        RasterizerStateDesc rasterizerStateDesc = {};
-        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
         RasterizerStateDesc sphereRasterizerStateDesc = {};
         sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
@@ -140,14 +143,16 @@ void DrawStar::Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer)
 void DrawStar::Update(float deltaTime, CameraMatrix &cameraMatrix)
 {
     uniform.mProjectView = cameraMatrix;
-    uniform.mColor = color;
-    uniform.mToWorldMat = mat4(0).identity().translation(position);
+    for(int i = 0; i<MAX_STARS; i++)
+    {
+        uniform.mColor[i] = color[i];
+        uniform.mToWorldMat[i] = mat4(0).identity().translation(position[i]);
+    }
     uniform.mLightColor = lightColor;
     uniform.mLightPosition = lightPosition;
 }
 
-void DrawStar::Draw(Cmd *pCmd, RenderTarget *pRenderTarget,
-                    RenderTarget *pDepthBuffer, uint32_t frameIndex)
+void DrawStar::Draw(Cmd *pCmd, RenderTarget *pRenderTarget, RenderTarget *pDepthBuffer, uint32_t frameIndex)
 {
     constexpr uint32_t sphereVbStride = sizeof(float) * 6;
 
@@ -162,7 +167,8 @@ void DrawStar::Draw(Cmd *pCmd, RenderTarget *pRenderTarget,
     cmdBindDescriptorSet(pCmd, frameIndex, pDescriptorSetUniforms);
     cmdBindVertexBuffer(pCmd, 1, &pSphereVertexBuffer, &sphereVbStride, nullptr);
 
-    cmdDraw(pCmd, vertexCount / 6, 1);
+    // cmdDraw(pCmd, vertexCount / 6, 1);
+    cmdDrawInstanced(pCmd, vertexCount / 6, 0, MAX_STARS, 0);
 }
 
 void DrawStar::PreDraw(uint32_t frameIndex)

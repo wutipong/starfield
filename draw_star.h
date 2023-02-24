@@ -24,10 +24,12 @@ public:
               RenderTarget *pDepthBuffer, uint32_t frameIndex);
 
 private:
-    int vertexCount{};
 
-    vec3 position{0};
-    vec4 color{1.0f, 0, 0, 1.0f};
+    int vertexCount{};
+    static constexpr size_t MAX_STARS = 256;
+
+    vec3 position[MAX_STARS] = {};
+    vec4 color[MAX_STARS] ={};
     vec3 lightPosition{1.0f, 0, 0};
     vec3 lightColor{0.9f, 0.9f, 0.7f};
 
@@ -38,11 +40,12 @@ private:
     Buffer *pSphereVertexBuffer = nullptr;
     Pipeline *pSpherePipeline;
 
+
     struct UniformBlock
     {
         CameraMatrix mProjectView;
-        mat4 mToWorldMat;
-        vec4 mColor;
+        mat4 mToWorldMat[MAX_STARS];
+        vec4 mColor[MAX_STARS];
 
         vec3 mLightPosition;
         vec3 mLightColor;
