@@ -15,7 +15,7 @@ class DrawStar
 public:
     void Init(uint32_t imageCount);
     void Exit();
-    void Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSwapChain, RenderTarget *pDepthBuffer,
+    void Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *pRenderTarget, RenderTarget *pDepthBuffer,
               uint32_t imageCount);
     void Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer);
     void Update(float deltaTime, CameraMatrix &cameraMatrix);

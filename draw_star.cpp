@@ -45,7 +45,7 @@ void DrawStar::Exit()
     removeResource(pSphereVertexBuffer);
 }
 
-void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSwapChain, RenderTarget *pDepthBuffer,
+void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *pRenderTarget, RenderTarget *pDepthBuffer,
                     uint32_t imageCount)
 {
     if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
@@ -100,9 +100,9 @@ void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, SwapChain *pSw
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
         pipelineSettings.mRenderTargetCount = 1;
         pipelineSettings.pDepthState = &depthStateDesc;
-        pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-        pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-        pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+        pipelineSettings.pColorFormats = &pRenderTarget->mFormat;
+        pipelineSettings.mSampleCount = pRenderTarget->mSampleCount;
+        pipelineSettings.mSampleQuality = pRenderTarget->mSampleQuality;
         pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
         pipelineSettings.pRootSignature = pRootSignature;
         pipelineSettings.pShaderProgram = pShader;

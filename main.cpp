@@ -35,12 +35,6 @@ private:
 public:
     bool Init() override
     {
-        /*
-         * TODO: only D3D11 is not crashing at the moment.
-         *       D3D12 just crashes, while the validation layer of Vulkan try to display some error message.
-         */
-        gSelectedRendererApi = RENDERER_API_D3D11;
-
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "shaders");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
@@ -210,7 +204,7 @@ public:
         fontLoad.mLoadType = pReloadDesc->mType;
         loadFontSystem(&fontLoad);
 
-        drawStar.Load(pReloadDesc, pRenderer, pSwapChain, pDepthBuffer, gImageCount);
+        drawStar.Load(pReloadDesc, pRenderer, pSwapChain->ppRenderTargets[0], pDepthBuffer, gImageCount);
         return true;
     }
 
@@ -277,11 +271,12 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
+        drawStar.Draw(cmd, gFrameIndex);
+
         loadActions = {};
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
         cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, nullptr, nullptr, -1, -1);
 
-        drawStar.Draw(cmd, gFrameIndex);
         cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, 0, nullptr, nullptr, nullptr, nullptr, nullptr, -1, -1);
