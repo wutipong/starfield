@@ -5,7 +5,7 @@
 void DrawStar::Init(uint32_t imageCount)
 {
     float *vertices{};
-    generateSpherePoints(&vertices, &vertexCount, 6, 1.0f);
+    generateSpherePoints(&vertices, &vertexCount, 24, 1.0f);
 
     uint64_t sphereDataSize = vertexCount * sizeof(float);
     BufferLoadDesc sphereVbDesc = {};

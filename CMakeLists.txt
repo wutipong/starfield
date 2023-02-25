@@ -183,30 +183,17 @@ file(COPY
         "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Examples_3/Unit_Tests/UnitTestResources/Fonts/TitilliumText/TitilliumText-Bold.otf"
         DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/Fonts/TitilliumText")
 
+function(compile_shaders arg)
+    add_custom_command(TARGET starfield
+            POST_BUILD
+            COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
+            ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
+            "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 VULKAN" --compile --verbose
+            "${arg}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            )
+endfunction()
 
-add_custom_command(TARGET starfield
-        POST_BUILD
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
-        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
-        "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
-        "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/UI/Shaders/FSL/UI_ShaderList.fsl"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        )
-
-add_custom_command(TARGET starfield
-        POST_BUILD
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
-        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
-        "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
-        "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/Fonts/Shaders/FSL/Fonts_ShaderList.fsl"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        )
-
-add_custom_command(TARGET starfield
-        POST_BUILD
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Tools/python-3.6.0-embed-amd64/python.exe"
-        ARGS "${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Tools/ForgeShadingLanguage/fsl.py"
-        "-dShaders" "-bCompiledShaders" "-l DIRECT3D12 DIRECT3D11 VULKAN" --compile --verbose
-        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/FSL/ShaderList.fsl"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        )
+compile_shaders("${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/UI/Shaders/FSL/UI_ShaderList.fsl")
+compile_shaders("${CMAKE_CURRENT_SOURCE_DIR}/theforge/Common_3/Application/Fonts/Shaders/FSL/Fonts_ShaderList.fsl")
+compile_shaders("${CMAKE_CURRENT_SOURCE_DIR}/shaders/FSL/ShaderList.fsl")

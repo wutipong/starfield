@@ -44,9 +44,11 @@ public:
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "Noesis");
 
+        gSelectedRendererApi = RENDERER_API_VULKAN;
+
         // window and renderer setup
         RendererDesc settings{};
-        settings.mD3D11Supported = true;
+        settings.mD3D11Supported = false;
         settings.mGLESSupported = false;
         settings.mEnableGPUBasedValidation = true;
 
@@ -290,7 +292,7 @@ public:
         gFrameIndex = (gFrameIndex + 1) % gImageCount;
     }
 
-    const char *GetName() override { return "StarField test"; }
+    const char *GetName() override { return "StarField"; }
 };
 
 DEFINE_APPLICATION_MAIN(MainApp);

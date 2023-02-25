@@ -26,7 +26,7 @@ public:
 private:
 
     int vertexCount{};
-    static constexpr size_t MAX_STARS = 256;
+    static constexpr size_t MAX_STARS = 768;
 
     vec3 position[MAX_STARS] = {};
     vec4 color[MAX_STARS] ={};
