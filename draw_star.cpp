@@ -34,9 +34,17 @@ void DrawStar::Init(uint32_t imageCount)
 
     for (size_t i = 0; i < MAX_STARS; i++)
     {
-        position[i] = {randomFloat(-20, 20), randomFloat(-20, 20), randomFloat(-20, 20)};
+        position[i] = {randomFloat(-100, 100), randomFloat(-100, 100), randomFloat(-100, 100)};
         color[i] = {randomFloat01(), randomFloat01(), randomFloat01(), 1.0f};
     }
+
+    CameraMotionParameters cmp{160.0f, 600.0f, 1000.0f};
+    vec3 camPos{0.0f, 0.0f, 20.0f};
+    vec3 lookAt{vec3(0)};
+
+    pCameraController = initFpsCameraController(camPos, lookAt);
+
+    pCameraController->setMotionParameters(cmp);
 }
 
 void DrawStar::Exit()
@@ -49,6 +57,8 @@ void DrawStar::Exit()
     arrfree(pProjViewUniformBuffer);
 
     removeResource(pSphereVertexBuffer);
+
+    exitCameraController(pCameraController);
 }
 
 void DrawStar::Load(ReloadDesc *pReloadDesc, Renderer *pRenderer, RenderTarget *pRenderTarget,
@@ -140,9 +150,15 @@ void DrawStar::Unload(ReloadDesc *pReloadDesc, Renderer *pRenderer)
     }
 }
 
-void DrawStar::Update(float deltaTime, CameraMatrix &cameraMatrix)
+void DrawStar::Update(float deltaTime, uint32_t width, uint32_t height)
 {
-    uniform.mProjectView = cameraMatrix;
+    pCameraController->update(deltaTime);
+    const float aspectInverse = (float)height / (float)width;
+    const float horizontal_fov = PI / 2.0f;
+    CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
+    CameraMatrix mProjectView = projMat * pCameraController->getViewMatrix();
+
+    uniform.mProjectView = mProjectView;
     for(int i = 0; i<MAX_STARS; i++)
     {
         uniform.mColor[i] = color[i];
@@ -161,7 +177,6 @@ void DrawStar::Draw(Cmd *pCmd, RenderTarget *pRenderTarget, RenderTarget *pDepth
     loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
     loadActions.mClearDepth.depth = 0.0f;
     cmdBindRenderTargets(pCmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, nullptr, nullptr, -1, -1);
-
 
     cmdBindPipeline(pCmd, pSpherePipeline);
     cmdBindDescriptorSet(pCmd, frameIndex, pDescriptorSetUniforms);

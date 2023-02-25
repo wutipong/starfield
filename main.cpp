@@ -29,7 +29,6 @@ private:
     Semaphore *pRenderCompleteSemaphores[gImageCount] = {nullptr};
     Semaphore *pImageAcquiredSemaphore = nullptr;
 
-    ICameraController *pCameraController;
     DrawStar drawStar;
 
 public:
@@ -101,14 +100,6 @@ public:
 
         waitForAllResourceLoads();
 
-        CameraMotionParameters cmp{160.0f, 600.0f, 200.0f};
-        vec3 camPos{48.0f, 48.0f, 20.0f};
-        vec3 lookAt{vec3(0)};
-
-        pCameraController = initFpsCameraController(camPos, lookAt);
-
-        pCameraController->setMotionParameters(cmp);
-
         InputSystemDesc inputDesc = {};
         inputDesc.pRenderer = pRenderer;
         inputDesc.pWindow = pWindow;
@@ -133,7 +124,6 @@ public:
     {
         drawStar.Exit();
         exitInputSystem();
-        exitCameraController(pCameraController);
         exitUserInterface();
         exitFontSystem();
 
@@ -225,14 +215,8 @@ public:
     void Update(float deltaTime) override
     {
         updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
-        pCameraController->update(deltaTime);
 
-        const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-        const float horizontal_fov = PI / 2.0f;
-        CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
-        CameraMatrix mProjectView = projMat * pCameraController->getViewMatrix();
-
-        drawStar.Update(deltaTime, mProjectView);
+        drawStar.Update(deltaTime, mSettings.mWidth, mSettings.mHeight);
     }
 
     void Draw() override
