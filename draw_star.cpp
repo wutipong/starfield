@@ -159,8 +159,13 @@ void DrawStar::Update(float deltaTime, uint32_t width, uint32_t height)
     CameraMatrix mProjectView = projMat * pCameraController->getViewMatrix();
 
     uniform.mProjectView = mProjectView;
-    for(int i = 0; i<MAX_STARS; i++)
+    for (int i = 0; i < MAX_STARS; i++)
     {
+        position[i].setZ(position[i].getZ() + deltaTime * 100.0f);
+        if (position[i].getZ() > 100)
+        {
+            position[i].setZ(randomFloat(-100, 100));
+        }
         uniform.mColor[i] = color[i];
         uniform.mToWorldMat[i] = mat4(0).identity().translation(position[i]);
     }
