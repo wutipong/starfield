@@ -7,6 +7,7 @@
 #include <IInput.h>
 #include <IResourceLoader.h>
 #include <IUI.h>
+#include "IProfiler.h"
 #include "draw_star.h"
 
 extern RendererApi gSelectedRendererApi;
@@ -28,6 +29,9 @@ private:
     Fence *pRenderCompleteFences[gImageCount]{nullptr};
     Semaphore *pRenderCompleteSemaphores[gImageCount] = {nullptr};
     Semaphore *pImageAcquiredSemaphore = nullptr;
+
+    ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
+    FontDrawDesc gFrameTimeDraw;
 
     DrawStar drawStar;
 
@@ -78,6 +82,16 @@ public:
 
         initResourceLoaderInterface(pRenderer);
 
+        // Initialize micro profiler and its UI.
+        ProfilerDesc profiler = {};
+        profiler.pRenderer = pRenderer;
+        profiler.mWidthUI = mSettings.mWidth;
+        profiler.mHeightUI = mSettings.mHeight;
+        initProfiler(&profiler);
+
+        // Gpu profiler can only be added after initProfile.
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
         // Load fonts
         FontDesc font = {};
         font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -86,7 +100,9 @@ public:
         FontSystemDesc fontRenderDesc = {};
         fontRenderDesc.pRenderer = pRenderer;
         if (!initFontSystem(&fontRenderDesc))
+        {
             return false; // report?
+        }
 
         UserInterfaceDesc uiRenderDesc = {};
         uiRenderDesc.pRenderer = pRenderer;
@@ -128,6 +144,8 @@ public:
         exitInputSystem();
         exitUserInterface();
         exitFontSystem();
+
+        exitProfiler();
 
         for (uint32_t i = 0; i < gImageCount; ++i)
         {
@@ -244,6 +262,8 @@ public:
         Cmd *cmd = pCmds[gFrameIndex];
         beginCmd(cmd);
 
+        cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+
         RenderTargetBarrier barriers[] = {
             {pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET},
         };
@@ -257,18 +277,34 @@ public:
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Scene");
         drawStar.Draw(cmd, pRenderTarget, pDepthBuffer, gFrameIndex);
+        cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         loadActions = {};
         loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
         cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, nullptr, nullptr, -1, -1);
 
+        loadActions = {};
+        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+        cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
+        cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
+
+        gFrameTimeDraw.mFontColor = 0xff00ffff;
+        gFrameTimeDraw.mFontSize = 18.0f;
+        gFrameTimeDraw.mFontID = gFontID;
+        float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &gFrameTimeDraw);
+        cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
+
         cmdDrawUserInterface(cmd);
+
+        cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         cmdBindRenderTargets(cmd, 0, nullptr, nullptr, nullptr, nullptr, nullptr, -1, -1);
         barriers[0] = {pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT};
         cmdResourceBarrier(cmd, 0, nullptr, 0, nullptr, 1, barriers);
 
+        cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
         endCmd(cmd);
 
         QueueSubmitDesc submitDesc = {};
