@@ -324,6 +324,7 @@ public:
         presentDesc.mSubmitDone = true;
 
         queuePresent(pGraphicsQueue, &presentDesc);
+        flipProfiler();
 
         gFrameIndex = (gFrameIndex + 1) % gImageCount;
     }
